@@ -214,23 +214,33 @@ async fn main() -> Result<()> {
             }
         }
 
-        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(4);
+        let file_name = std::path::Path::new(&watch_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        let dir_path = std::path::Path::new(&watch_path)
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| std::path::PathBuf::from("."));
 
         let mut watcher =
             notify::recommended_watcher(move |event: Result<notify::Event, notify::Error>| {
-                if let Ok(event) = event
-                    && event.kind.is_modify()
-                {
-                    let _ = tx.blocking_send(());
+                if let Ok(event) = event {
+                    let matches = event.paths.iter().any(|p| {
+                        p.file_name()
+                            .map(|n| n == file_name.as_str())
+                            .unwrap_or(false)
+                    });
+                    if matches && (event.kind.is_modify() || event.kind.is_create()) {
+                        let _ = tx.blocking_send(());
+                    }
                 }
             })?;
 
-        watcher.watch(
-            std::path::Path::new(&watch_path),
-            notify::RecursiveMode::NonRecursive,
-        )?;
+        watcher.watch(&dir_path, notify::RecursiveMode::NonRecursive)?;
 
-        info!("daemon running, watching for AdGuardHome config changes. Press Ctrl+C to stop");
+        info!("daemon running, watching {watch_path}. Press Ctrl+C to stop");
 
         loop {
             tokio::select! {
