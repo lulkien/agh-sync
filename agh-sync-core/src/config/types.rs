@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Top-level application configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     /// Cron expression for daemon mode.
     #[serde(default)]
@@ -47,6 +48,7 @@ pub struct Config {
 
 /// An AdGuardHome instance (origin or replica).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AdGuardInstance {
     /// URL of the AdGuardHome instance.
     pub url: String,
@@ -105,6 +107,7 @@ pub struct AdGuardInstance {
 
 /// API server configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ApiConfig {
     /// Port (0 = disabled).
     #[serde(default = "default_api_port")]
@@ -133,6 +136,7 @@ pub struct ApiConfig {
 
 /// Metrics scraping configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetricsConfig {
     /// Enable Prometheus metrics.
     #[serde(default)]
@@ -149,6 +153,7 @@ pub struct MetricsConfig {
 
 /// TLS configuration for the API server.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TlsConfig {
     /// Certificate directory.
     #[serde(default)]
@@ -165,6 +170,7 @@ pub struct TlsConfig {
 
 /// Feature flags controlling which settings are synced.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Features {
     /// General settings (profile, protection, parental, safesearch, safebrowsing).
     #[serde(default = "default_true")]
@@ -212,6 +218,7 @@ pub struct Features {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DnsFeatures {
     #[serde(default = "default_true")]
     pub access_lists: bool,
@@ -222,6 +229,7 @@ pub struct DnsFeatures {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DhcpFeatures {
     #[serde(default = "default_true")]
     pub server_config: bool,
@@ -230,6 +238,7 @@ pub struct DhcpFeatures {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FiltersFeatures {
     #[serde(default = "default_true")]
     pub blacklist: bool,
