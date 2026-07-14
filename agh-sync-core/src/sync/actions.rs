@@ -102,6 +102,11 @@ async fn sync_profile_info(
 
 async fn sync_protection(c: &Client, o: &OriginData, _x: &ActionContext<'_>) -> anyhow::Result<()> {
     let rs = c.status().await.context("protection status")?;
+    log::debug!(
+        "protection: origin={} replica={}",
+        o.status.protection_enabled,
+        rs.protection_enabled
+    );
     if o.status.protection_enabled != rs.protection_enabled {
         c.toggle_protection(o.status.protection_enabled)
             .await
@@ -112,6 +117,7 @@ async fn sync_protection(c: &Client, o: &OriginData, _x: &ActionContext<'_>) -> 
 
 async fn sync_parental(c: &Client, o: &OriginData, _x: &ActionContext<'_>) -> anyhow::Result<()> {
     let rp = c.parental().await.context("parental")?;
+    log::debug!("parental: origin={} replica={}", o.parental, rp);
     if o.parental != rp {
         c.toggle_parental(o.parental)
             .await
@@ -150,6 +156,7 @@ async fn sync_safe_browsing(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rsb = c.safe_browsing().await.context("safe browsing")?;
+    log::debug!("safe_browsing: origin={} replica={}", o.safe_browsing, rsb);
     if o.safe_browsing != rsb {
         c.toggle_safe_browsing(o.safe_browsing)
             .await
@@ -198,6 +205,11 @@ async fn sync_query_log_config(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rql = c.query_log_config().await.context("query log config")?;
+    log::debug!(
+        "query_log_config: origin={:?} replica={:?}",
+        o.query_log_config,
+        rql
+    );
     if !query_log_config_eq(&o.query_log_config, &rql) {
         c.set_query_log_config(&o.query_log_config)
             .await
@@ -219,6 +231,11 @@ async fn sync_stats_config(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rs = c.stats_config().await.context("stats config")?;
+    log::debug!(
+        "stats_config: origin={:?} replica={:?}",
+        o.stats_config.interval,
+        rs.interval
+    );
     if o.stats_config.interval != rs.interval {
         c.set_stats_config(&o.stats_config)
             .await
@@ -233,6 +250,11 @@ async fn sync_rewrite_settings(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rr = c.rewrite_settings().await.context("rewrite settings")?;
+    log::debug!(
+        "rewrite_settings: origin={} replica={}",
+        o.rewrite_settings.enabled,
+        rr.enabled
+    );
     if o.rewrite_settings.enabled != rr.enabled {
         c.set_rewrite_settings(&o.rewrite_settings)
             .await
@@ -378,6 +400,11 @@ async fn sync_dns_access_lists(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let ra = c.access_list().await.context("access list")?;
+    log::debug!(
+        "access_list: origin_allowed={:?} replica_allowed={:?}",
+        o.access_list.allowed_clients,
+        ra.allowed_clients
+    );
     if !access_list_eq(&o.access_list, &ra) {
         c.set_access_list(&o.access_list)
             .await
@@ -409,6 +436,11 @@ async fn sync_dhcp_server_config(
     if let Some(en) = ctx.replica.dhcp_server_enabled {
         desired.enabled = Some(en);
     }
+    log::debug!(
+        "dhcp_config: origin_enabled={:?} replica_enabled={:?}",
+        desired.enabled,
+        rd.enabled
+    );
     if !dhcp_config_eq(&desired, &rd) {
         c.set_dhcp_config(&desired)
             .await
@@ -485,6 +517,7 @@ async fn sync_tls_config(
         _ => return Ok(()),
     };
     let rt = c.tls_config().await.context("TLS config")?;
+    log::debug!("tls_config: origin={:?} replica={:?}", ot, rt);
     if !tls_config_eq(ot, &rt) {
         c.set_tls_config(ot).await.context("set TLS config")?;
     }

@@ -121,7 +121,7 @@ pub struct QueryLogConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatsConfig {
     pub enabled: Option<bool>,
-    pub interval: Option<i32>,
+    pub interval: Option<i64>,
 }
 
 /// DNS access list.
