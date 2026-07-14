@@ -1,0 +1,27 @@
+[package]
+name = "agh-sync-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+figment.workspace = true
+reqwest.workspace = true
+url.workspace = true
+base64.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+tokio-cron-scheduler.workspace = true
+prometheus.workspace = true
+thiserror = "2"
+humantime = "2"
+
+[dev-dependencies]
+pretty_assertions.workspace = true
+mockall.workspace = true
+wiremock.workspace = true
