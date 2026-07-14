@@ -164,6 +164,11 @@ async fn sync_dns_server_config(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rd = c.dns_config().await.context("DNS config")?;
+    log::debug!(
+        "dns config: origin_upstream={:?} replica_upstream={:?}",
+        o.dns_config.upstream_dns,
+        rd.upstream_dns
+    );
     if !dns_config_eq(&o.dns_config, &rd) {
         let mut desired = o.dns_config.clone();
         desired.protection_enabled = None;
@@ -242,6 +247,11 @@ async fn sync_rewrite_entries(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let re = c.rewrite_entries().await.context("rewrite entries")?;
+    log::debug!(
+        "rewrite entries: origin={} replica={}",
+        o.rewrite_entries.len(),
+        re.len()
+    );
     let (adds, removes, _, _) = merge::merge_rewrite_entries(&re, &o.rewrite_entries);
     c.delete_rewrite_entries(&removes)
         .await
@@ -288,6 +298,11 @@ async fn sync_filter_list(
     replica: Option<&Vec<Filter>>,
 ) -> anyhow::Result<()> {
     let (adds, _, deletes) = merge::merge_filters(replica, origin);
+    log::debug!(
+        "filters (wl={wl}): add={} delete={}",
+        adds.len(),
+        deletes.len()
+    );
     for f in &deletes {
         c.delete_filter(wl, f).await?;
     }
@@ -309,6 +324,11 @@ async fn sync_blocked_services(
         .blocked_services_schedule()
         .await
         .context("blocked services")?;
+    log::debug!(
+        "blocked services: origin={:?} replica={:?}",
+        o.blocked_services_schedule.services,
+        rb.services
+    );
     if !blocked_services_eq(&o.blocked_services_schedule, &rb) {
         c.set_blocked_services_schedule(&o.blocked_services_schedule)
             .await
@@ -332,6 +352,14 @@ async fn sync_client_settings(
 ) -> anyhow::Result<()> {
     let rc = c.clients().await.context("clients")?;
     let (adds, updates, deletes) = merge::merge_clients(&rc.clients, &o.clients.clients);
+    log::debug!(
+        "clients: origin={} replica={} add={} update={} delete={}",
+        o.clients.clients.len(),
+        rc.clients.len(),
+        adds.len(),
+        updates.len(),
+        deletes.len()
+    );
     for cl in &deletes {
         c.delete_client(cl).await?;
     }
