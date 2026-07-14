@@ -6,14 +6,19 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=agh-sync
-ExecStart=/usr/local/bin/agh-sync run --config /etc/agh-sync/config.yaml
+ExecStart=/usr/local/bin/agh-sync run --watch --config /etc/agh-sync/config.yaml
 Restart=always
 RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
 
 # Security hardening
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
+ReadOnlyPaths=/etc/agh-sync
 ReadWritePaths=/var/lib/agh-sync
 PrivateTmp=yes
 
