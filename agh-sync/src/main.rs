@@ -39,6 +39,10 @@ enum Commands {
         #[arg(long)]
         print_config_only: bool,
 
+        /// Verbose logging (show diff details)
+        #[arg(long)]
+        verbose: bool,
+
         /// Keep syncing to remaining replicas on error
         #[arg(long)]
         continue_on_error: bool,
@@ -85,7 +89,13 @@ enum Commands {
     },
 }
 
-fn setup_logger() -> Result<()> {
+fn setup_logger(verbose: bool) -> Result<()> {
+    let level = if verbose {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Info
+    };
+
     fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
@@ -95,8 +105,7 @@ fn setup_logger() -> Result<()> {
                 message
             ))
         })
-        .level(log::LevelFilter::Info)
-        .level_for("agh_sync", log::LevelFilter::Debug)
+        .level(level)
         .chain(std::io::stdout())
         .apply()?;
     Ok(())
@@ -104,14 +113,13 @@ fn setup_logger() -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    setup_logger()?;
-
     let cli = Cli::parse();
     let Commands::Run {
         config,
         watch,
         run_on_start,
         print_config_only,
+        verbose,
         continue_on_error,
         origin_url,
         origin_username,
@@ -131,6 +139,8 @@ async fn main() -> Result<()> {
         feature_theme,
         feature_tls,
     } = cli.command;
+
+    setup_logger(verbose)?;
 
     let overrides = CliOverrides {
         cron: None,
