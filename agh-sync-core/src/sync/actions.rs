@@ -171,11 +171,7 @@ async fn sync_dns_server_config(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rd = c.dns_config().await.context("DNS config")?;
-    log::debug!(
-        "dns config: origin_upstream={:?} replica_upstream={:?}",
-        o.dns_config.upstream_dns,
-        rd.upstream_dns
-    );
+    log::debug!("dns config: origin={:?} replica={:?}", o.dns_config, rd);
     if !dns_config_eq(&o.dns_config, &rd) {
         let mut desired = o.dns_config.clone();
         desired.protection_enabled = None;
