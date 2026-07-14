@@ -186,8 +186,16 @@ async fn main() -> Result<()> {
 
     if watch {
         // ── Watch daemon ──
-        let config_path = config.replace('~', &std::env::var("HOME").unwrap_or_default());
-        info!("watching config: {config_path}");
+        let watch_path = match &cfg.origin.config_path {
+            Some(p) => {
+                let expanded = p.replace('~', &std::env::var("HOME").unwrap_or_default());
+                info!("watching AdGuardHome config: {expanded}");
+                expanded
+            }
+            None => {
+                anyhow::bail!("--watch requires origin.configPath to be set in the config file");
+            }
+        };
 
         if run_on_start {
             info!("running sync on startup");
@@ -208,11 +216,11 @@ async fn main() -> Result<()> {
             })?;
 
         watcher.watch(
-            std::path::Path::new(&config_path),
+            std::path::Path::new(&watch_path),
             notify::RecursiveMode::NonRecursive,
         )?;
 
-        info!("daemon running, watching for config changes. Press Ctrl+C to stop");
+        info!("daemon running, watching for AdGuardHome config changes. Press Ctrl+C to stop");
 
         loop {
             tokio::select! {
@@ -222,19 +230,23 @@ async fn main() -> Result<()> {
                 }
                 Some(()) = rx.recv() => {
                     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-                    info!("config changed, reloading and syncing");
+                    info!("AdGuardHome config changed, syncing");
 
-                    match config::load_config(&config, CliOverrides::default()) {
-                        Ok(mut new_cfg) => {
-                            if let Err(e) = new_cfg.init() {
-                                log::error!("config init failed: {e}");
-                                continue;
-                            }
-                            if let Err(e) = agh_sync_core::sync::sync(&new_cfg).await {
-                                log::error!("sync failed: {e:#}");
-                            }
+                    // Reload agh-sync config (may have changed too)
+                    let mut sync_cfg = match config::load_config(&config, CliOverrides::default()) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            log::error!("config reload failed: {e}");
+                            continue;
                         }
-                        Err(e) => log::error!("config load failed: {e}"),
+                    };
+                    if let Err(e) = sync_cfg.init() {
+                        log::error!("config init failed: {e}");
+                        continue;
+                    }
+
+                    if let Err(e) = agh_sync_core::sync::sync(&sync_cfg).await {
+                        log::error!("sync failed: {e:#}");
                     }
                 }
             }

@@ -183,6 +183,7 @@ fn parse_replica_env() -> Vec<AdGuardInstance> {
                 auto_setup: fields.get("auto_setup").is_some_and(|v| v == "true"),
                 interface_name: fields.get("interface_name").cloned(),
                 dhcp_server_enabled: fields.get("dhcp_server_enabled").map(|v| v == "true"),
+                config_path: None,
                 host: None,
                 web_host: None,
             })

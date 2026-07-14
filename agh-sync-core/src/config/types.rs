@@ -91,6 +91,10 @@ pub struct AdGuardInstance {
     #[serde(default)]
     pub dhcp_server_enabled: Option<bool>,
 
+    /// Path to AdGuardHome config file to watch for changes (origin only).
+    #[serde(default)]
+    pub config_path: Option<String>,
+
     // Computed fields (not serialized).
     #[serde(skip)]
     pub host: Option<String>,
@@ -360,6 +364,7 @@ impl Default for AdGuardInstance {
             auto_setup: false,
             interface_name: None,
             dhcp_server_enabled: None,
+            config_path: None,
             host: None,
             web_host: None,
         }

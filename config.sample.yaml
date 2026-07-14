@@ -1,0 +1,40 @@
+# agh-sync configuration
+# Location: ~/.adguardhome-sync.yaml or /etc/agh-sync/config.yaml
+
+# Origin — the master AdGuardHome instance (read from)
+origin:
+  url: https://192.168.1.1:443
+  username: admin
+  password: your-password
+  configPath: /opt/AdGuardHome/AdGuardHome.yaml   # watched by --watch mode
+
+# Replicas — sync TO these instances
+replicas:
+  - url: http://192.168.1.2:80
+    username: admin
+    password: your-password
+  - url: http://192.168.1.3:80
+    username: admin
+    password: your-password
+
+# Feature flags — all enabled by default
+features:
+  generalSettings: true
+  filters:
+    blacklist: true
+    whitelist: true
+    userRules: true
+  dns:
+    rewrites: true
+    serverConfig: true
+    accessLists: true
+  dhcp:
+    serverConfig: true
+    staticLeases: true
+  clientSettings: true
+  services: true
+  theme: false
+  tlsConfig: false
+
+# Daemon
+runOnStart: true

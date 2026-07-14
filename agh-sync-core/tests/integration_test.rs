@@ -24,6 +24,7 @@ fn test_instance(url: &str) -> AdGuardInstance {
         auto_setup: false,
         interface_name: None,
         dhcp_server_enabled: None,
+        config_path: None,
         host: None,
         web_host: None,
     }
