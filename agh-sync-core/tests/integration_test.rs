@@ -322,6 +322,7 @@ async fn test_stats_config() {
     Mock::given(method("GET"))
         .and(path("/control/stats/config"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "enabled": true,
             "interval": 24
         })))
         .mount(&server)
@@ -331,6 +332,7 @@ async fn test_stats_config() {
     let client = Client::new(&inst, None).unwrap();
 
     let sc = client.stats_config().await.unwrap();
+    assert_eq!(sc.enabled, Some(true));
     assert_eq!(sc.interval, Some(24));
 }
 

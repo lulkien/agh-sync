@@ -117,9 +117,10 @@ pub struct QueryLogConfig {
     pub ignored: Vec<String>,
 }
 
-/// Stats config.
+/// Stats config response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatsConfig {
+    pub enabled: Option<bool>,
     pub interval: Option<i32>,
 }
 

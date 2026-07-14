@@ -474,7 +474,14 @@ impl Client {
     }
 
     pub async fn set_stats_config(&self, config: &StatsConfig) -> Result<(), ClientError> {
-        self.put("stats/config/update", config).await
+        self.put(
+            "stats/config/update",
+            &serde_json::json!({
+                "enabled": config.enabled.unwrap_or(true),
+                "interval": config.interval.unwrap_or(1)
+            }),
+        )
+        .await
     }
 
     // ── Setup ──
