@@ -13,5 +13,4 @@ anyhow.workspace = true
 fern.workspace = true
 log.workspace = true
 chrono.workspace = true
-tokio-cron-scheduler.workspace = true
 notify.workspace = true

@@ -39,9 +39,6 @@ bincode = "2"
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
-# Cron
-tokio-cron-scheduler = "0.13"
-
 # File watching
 notify = { version = "8", default-features = false, features = ["macos_kqueue"] }
 

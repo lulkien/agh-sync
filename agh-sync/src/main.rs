@@ -1,10 +1,9 @@
 //! agh-sync — synchronize AdGuardHome config to replica instances.
 //!
 //! Usage:
-//!   agh-sync run                                    # single sync
-//!   agh-sync run --cron "0 */2 * * *"               # cron daemon
-//!   agh-sync run --watch                            # watch config, sync on change
-//!   agh-sync run --print-config-only                # debug config
+//!   agh-sync run                      # single sync
+//!   agh-sync run --watch              # daemon, sync on config change
+//!   agh-sync run --print-config-only  # debug config
 
 use anyhow::Result;
 use clap::Parser;
@@ -28,15 +27,11 @@ enum Commands {
         #[arg(short, long, default_value = "~/.adguardhome-sync.yaml")]
         config: String,
 
-        /// Cron expression for daemon mode (e.g. "0 */2 * * *")
-        #[arg(long)]
-        cron: Option<String>,
-
-        /// Watch config file and sync on changes
+        /// Watch config file and sync on changes (daemon mode)
         #[arg(long)]
         watch: bool,
 
-        /// Run sync immediately on startup (cron/daemon mode only)
+        /// Run sync immediately on startup (watch mode only)
         #[arg(long, default_value = "true")]
         run_on_start: bool,
 
@@ -114,7 +109,6 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     let Commands::Run {
         config,
-        cron,
         watch,
         run_on_start,
         print_config_only,
@@ -139,7 +133,7 @@ async fn main() -> Result<()> {
     } = cli.command;
 
     let overrides = CliOverrides {
-        cron: cron.clone(),
+        cron: None,
         run_on_start: Some(run_on_start),
         print_config_only: Some(print_config_only),
         continue_on_error: Some(continue_on_error),
@@ -151,7 +145,6 @@ async fn main() -> Result<()> {
         replica_url,
         replica_username,
         replica_password,
-        // Expand feature flags into granular overrides
         feature_general_settings: Some(feature_general_settings),
         feature_protection_status: Some(feature_general_settings),
         feature_query_log_config: Some(feature_general_settings),
@@ -168,7 +161,6 @@ async fn main() -> Result<()> {
         feature_filters_user_rules: Some(feature_filters),
         feature_theme: Some(feature_theme),
         feature_tls_config: Some(feature_tls),
-        // Unused overrides
         api_port: None,
         api_username: None,
         api_password: None,
@@ -192,41 +184,7 @@ async fn main() -> Result<()> {
 
     info!("agh-sync v{}", agh_sync_core::VERSION);
 
-    if let Some(cron_expr) = cron {
-        // ── Cron daemon ──
-        info!("cron: {cron_expr}");
-
-        if run_on_start {
-            info!("running sync on startup");
-            if let Err(e) = agh_sync_core::sync::sync(&cfg).await {
-                log::error!("startup sync failed: {e:#}");
-            }
-        }
-
-        use tokio_cron_scheduler::{Job, JobScheduler};
-        let sched = JobScheduler::new().await?;
-        let cfg = std::sync::Arc::new(cfg);
-
-        let job = Job::new_async(&cron_expr, {
-            let cfg = cfg.clone();
-            move |_uuid, _lock| {
-                let cfg = cfg.clone();
-                Box::pin(async move {
-                    info!("cron sync triggered");
-                    if let Err(e) = agh_sync_core::sync::sync(&cfg).await {
-                        log::error!("cron sync failed: {e:#}");
-                    }
-                })
-            }
-        })?;
-
-        sched.add(job).await?;
-        sched.start().await?;
-
-        info!("daemon running, press Ctrl+C to stop");
-        tokio::signal::ctrl_c().await?;
-        info!("shutting down");
-    } else if watch {
+    if watch {
         // ── Watch daemon ──
         let config_path = config.replace('~', &std::env::var("HOME").unwrap_or_default());
         info!("watching config: {config_path}");
@@ -263,10 +221,9 @@ async fn main() -> Result<()> {
                     break;
                 }
                 Some(()) = rx.recv() => {
-                    // Debounce: wait briefly for writes to settle
                     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-
                     info!("config changed, reloading and syncing");
+
                     match config::load_config(&config, CliOverrides::default()) {
                         Ok(mut new_cfg) => {
                             if let Err(e) = new_cfg.init() {
