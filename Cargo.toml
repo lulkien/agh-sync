@@ -25,9 +25,16 @@ base64 = "0.22"
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
 # Logging
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+fern = "0.7"
+log = "0.4"
+
+# IPC
+bincode = "2"
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }
@@ -40,13 +47,6 @@ prometheus = { version = "0.13", features = ["process"] }
 
 # CLI
 clap = { version = "4", features = ["derive", "env"] }
-
-# Web server
-axum = "0.8"
-tower-http = { version = "0.6", features = ["auth", "cors"] }
-
-# Templates
-askama = "0.12"
 
 # Testing
 pretty_assertions = "1"

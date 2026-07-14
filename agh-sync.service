@@ -1,0 +1,21 @@
+[Unit]
+Description=AdGuardHome Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agh-sync
+ExecStart=/usr/local/bin/agh-sync run --config /etc/agh-sync/config.yaml
+Restart=always
+RestartSec=10
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/agh-sync
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

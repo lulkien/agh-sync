@@ -14,11 +14,13 @@ reqwest.workspace = true
 url.workspace = true
 base64.workspace = true
 tokio.workspace = true
-tracing.workspace = true
 chrono.workspace = true
 tokio-cron-scheduler.workspace = true
 prometheus.workspace = true
-thiserror = "2"
+anyhow.workspace = true
+thiserror.workspace = true
+log.workspace = true
+bincode.workspace = true
 humantime = "2"
 
 [dev-dependencies]

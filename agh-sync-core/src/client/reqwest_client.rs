@@ -11,7 +11,7 @@ use crate::model::{
 use reqwest::{Client as HttpClient, StatusCode, Url};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{debug, info};
+// logging removed
 
 /// Client for interacting with an AdGuardHome instance's REST API.
 #[derive(Clone)]
@@ -48,7 +48,7 @@ impl Client {
     /// Create a new client for the given AdGuardHome instance.
     pub fn new(inst: &AdGuardInstance, timeout: Option<Duration>) -> Result<Self, ClientError> {
         let api_url = format!(
-            "{}/{}",
+            "{}/{}/",
             inst.url.trim_end_matches('/'),
             inst.api_path.trim_matches('/')
         );
@@ -119,7 +119,6 @@ impl Client {
 
     async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, ClientError> {
         let url = self.inner.base_url.join(path)?;
-        debug!("GET {}", url);
         let resp = self.inner.http.get(url).send().await?;
 
         if resp.status() == StatusCode::OK {
@@ -137,7 +136,6 @@ impl Client {
         path: &str,
     ) -> Result<T, ClientError> {
         let url = self.inner.base_url.join(path)?;
-        debug!("GET {}", url);
         let resp = self.inner.http.get(url).send().await?;
 
         match resp.status() {
@@ -157,7 +155,6 @@ impl Client {
 
     async fn post(&self, path: &str, body: &impl serde::Serialize) -> Result<(), ClientError> {
         let url = self.inner.base_url.join(path)?;
-        debug!("POST {}", url);
         let resp = self.inner.http.post(url).json(body).send().await?;
         if resp.status().is_success() {
             Ok(())
@@ -174,7 +171,6 @@ impl Client {
     /// POST with no body.
     async fn post_empty(&self, path: &str) -> Result<(), ClientError> {
         let url = self.inner.base_url.join(path)?;
-        debug!("POST {}", url);
         let resp = self.inner.http.post(url).send().await?;
         if resp.status().is_success() {
             Ok(())
@@ -192,7 +188,6 @@ impl Client {
 
     async fn put(&self, path: &str, body: &impl serde::Serialize) -> Result<(), ClientError> {
         let url = self.inner.base_url.join(path)?;
-        debug!("PUT {}", url);
         let resp = self.inner.http.put(url).json(body).send().await?;
         if resp.status().is_success() {
             Ok(())
@@ -210,7 +205,29 @@ impl Client {
 
     /// Get server status.
     pub async fn status(&self) -> Result<ServerStatus, ClientError> {
-        self.get_optional("status").await
+        let url = self.inner.base_url.join("status")?;
+        let resp = self.inner.http.get(url).send().await?;
+
+        match resp.status() {
+            StatusCode::OK => {
+                let body = resp.text().await.unwrap_or_default();
+                // Check if this is actually the setup page
+                if body.contains("install/configure") {
+                    return Err(ClientError::SetupNeeded);
+                }
+                serde_json::from_str(&body).map_err(|e| ClientError::Api {
+                    status: StatusCode::OK,
+                    body: format!("JSON parse error: {e}"),
+                })
+            }
+            s => {
+                let body = resp.text().await.unwrap_or_default();
+                if body.contains("install/configure") {
+                    return Err(ClientError::SetupNeeded);
+                }
+                Err(ClientError::Api { status: s, body })
+            }
+        }
     }
 
     /// Get statistics.
@@ -241,7 +258,6 @@ impl Client {
 
     pub async fn add_rewrite_entries(&self, entries: &[RewriteEntry]) -> Result<(), ClientError> {
         for e in entries {
-            info!(domain = %e.domain, answer = %e.answer, "Add DNS rewrite entry");
             self.post("rewrite/add", e).await?;
         }
         Ok(())
@@ -252,7 +268,6 @@ impl Client {
         entries: &[RewriteEntry],
     ) -> Result<(), ClientError> {
         for e in entries {
-            info!(domain = %e.domain, answer = %e.answer, "Delete DNS rewrite entry");
             self.post("rewrite/delete", e).await?;
         }
         Ok(())
@@ -263,7 +278,6 @@ impl Client {
         entries: &[RewriteUpdate],
     ) -> Result<(), ClientError> {
         for e in entries {
-            info!(domain = %e.update.domain, answer = %e.update.answer, "Update DNS rewrite entry");
             self.put("rewrite/update", e).await?;
         }
         Ok(())
@@ -277,7 +291,6 @@ impl Client {
         &self,
         settings: &RewriteSettings,
     ) -> Result<(), ClientError> {
-        info!(enabled = settings.enabled, "Set rewrite settings");
         self.put("rewrite/settings/update", settings).await
     }
 
@@ -288,7 +301,6 @@ impl Client {
     }
 
     pub async fn toggle_filtering(&self, enabled: bool, interval: i32) -> Result<(), ClientError> {
-        info!(enabled, interval, "Toggle filtering");
         self.post(
             "filtering/config",
             &serde_json::json!({
@@ -300,7 +312,6 @@ impl Client {
     }
 
     pub async fn add_filter(&self, whitelist: bool, filter: &Filter) -> Result<(), ClientError> {
-        info!(url = %filter.url, whitelist, "Add filter");
         self.post(
             "filtering/add_url",
             &serde_json::json!({
@@ -313,7 +324,6 @@ impl Client {
     }
 
     pub async fn delete_filter(&self, whitelist: bool, filter: &Filter) -> Result<(), ClientError> {
-        info!(url = %filter.url, whitelist, "Delete filter");
         self.post(
             "filtering/remove_url",
             &serde_json::json!({
@@ -325,7 +335,6 @@ impl Client {
     }
 
     pub async fn update_filter(&self, whitelist: bool, filter: &Filter) -> Result<(), ClientError> {
-        info!(url = %filter.url, whitelist, "Update filter");
         self.post(
             "filtering/set_url",
             &serde_json::json!({
@@ -342,7 +351,6 @@ impl Client {
     }
 
     pub async fn refresh_filters(&self, whitelist: bool) -> Result<(), ClientError> {
-        info!(whitelist, "Refresh filter");
         self.post(
             "filtering/refresh",
             &serde_json::json!({"whitelist": whitelist}),
@@ -351,7 +359,6 @@ impl Client {
     }
 
     pub async fn set_custom_rules(&self, rules: &[String]) -> Result<(), ClientError> {
-        info!(count = rules.len(), "Set user rules");
         self.post("filtering/set_rules", &serde_json::json!({"rules": rules}))
             .await
     }
@@ -365,7 +372,6 @@ impl Client {
 
     async fn toggle_bool(&self, mode: &str, enable: bool) -> Result<(), ClientError> {
         let action = if enable { "enable" } else { "disable" };
-        info!(mode, enable, "Toggle");
         self.post_empty(&format!("{mode}/{action}")).await
     }
 
@@ -433,12 +439,10 @@ impl Client {
     }
 
     pub async fn add_client(&self, c: &ClientSettings) -> Result<(), ClientError> {
-        info!(name = %c.name, "Add client settings");
         self.post("clients/add", c).await
     }
 
     pub async fn update_client(&self, c: &ClientSettings) -> Result<(), ClientError> {
-        info!(name = %c.name, "Update client settings");
         self.post(
             "clients/update",
             &serde_json::json!({
@@ -450,7 +454,6 @@ impl Client {
     }
 
     pub async fn delete_client(&self, c: &ClientSettings) -> Result<(), ClientError> {
-        info!(name = %c.name, "Delete client settings");
         self.post("clients/delete", c).await
     }
 
@@ -477,7 +480,6 @@ impl Client {
     // ── Setup ──
 
     pub async fn setup(&self) -> Result<(), ClientError> {
-        info!("Setup new AdGuardHome instance");
         let body = serde_json::json!({
             "web": {
                 "ip": "0.0.0.0",
@@ -502,7 +504,6 @@ impl Client {
     }
 
     pub async fn set_access_list(&self, list: &AccessList) -> Result<(), ClientError> {
-        info!("Set access list");
         self.post("access/set", list).await
     }
 
@@ -523,12 +524,10 @@ impl Client {
     }
 
     pub async fn set_dhcp_config(&self, config: &DhcpStatus) -> Result<(), ClientError> {
-        info!("Set DHCP server config");
         self.post("dhcp/set_config", config).await
     }
 
     pub async fn add_dhcp_static_lease(&self, lease: &DhcpStaticLease) -> Result<(), ClientError> {
-        info!(mac = %lease.mac, ip = %lease.ip, hostname = %lease.hostname, "Add static DHCP lease");
         self.post("dhcp/add_static_lease", lease).await
     }
 
@@ -536,7 +535,6 @@ impl Client {
         &self,
         lease: &DhcpStaticLease,
     ) -> Result<(), ClientError> {
-        info!(mac = %lease.mac, ip = %lease.ip, hostname = %lease.hostname, "Delete static DHCP lease");
         self.post("dhcp/remove_static_lease", lease).await
     }
 
