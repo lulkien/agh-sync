@@ -2,7 +2,8 @@
 //!
 //! Usage:
 //!   agh-sync run                                    # single sync
-//!   agh-sync run --cron "0 */2 * * *"               # daemon mode
+//!   agh-sync run --cron "0 */2 * * *"               # cron daemon
+//!   agh-sync run --watch                            # watch config, sync on change
 //!   agh-sync run --print-config-only                # debug config
 
 use anyhow::Result;
@@ -10,6 +11,7 @@ use clap::Parser;
 use log::info;
 
 use agh_sync_core::config::{self, CliOverrides};
+use notify::Watcher;
 
 #[derive(Parser)]
 #[command(name = "agh-sync", version = agh_sync_core::VERSION)]
@@ -29,6 +31,10 @@ enum Commands {
         /// Cron expression for daemon mode (e.g. "0 */2 * * *")
         #[arg(long)]
         cron: Option<String>,
+
+        /// Watch config file and sync on changes
+        #[arg(long)]
+        watch: bool,
 
         /// Run sync immediately on startup (cron/daemon mode only)
         #[arg(long, default_value = "true")]
@@ -109,6 +115,7 @@ async fn main() -> Result<()> {
     let Commands::Run {
         config,
         cron,
+        watch,
         run_on_start,
         print_config_only,
         continue_on_error,
@@ -186,7 +193,7 @@ async fn main() -> Result<()> {
     info!("agh-sync v{}", agh_sync_core::VERSION);
 
     if let Some(cron_expr) = cron {
-        // ── Daemon mode ──
+        // ── Cron daemon ──
         info!("cron: {cron_expr}");
 
         if run_on_start {
@@ -219,6 +226,62 @@ async fn main() -> Result<()> {
         info!("daemon running, press Ctrl+C to stop");
         tokio::signal::ctrl_c().await?;
         info!("shutting down");
+    } else if watch {
+        // ── Watch daemon ──
+        let config_path = config.replace('~', &std::env::var("HOME").unwrap_or_default());
+        info!("watching config: {config_path}");
+
+        if run_on_start {
+            info!("running sync on startup");
+            if let Err(e) = agh_sync_core::sync::sync(&cfg).await {
+                log::error!("startup sync failed: {e:#}");
+            }
+        }
+
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+
+        let mut watcher =
+            notify::recommended_watcher(move |event: Result<notify::Event, notify::Error>| {
+                if let Ok(event) = event
+                    && event.kind.is_modify()
+                {
+                    let _ = tx.blocking_send(());
+                }
+            })?;
+
+        watcher.watch(
+            std::path::Path::new(&config_path),
+            notify::RecursiveMode::NonRecursive,
+        )?;
+
+        info!("daemon running, watching for config changes. Press Ctrl+C to stop");
+
+        loop {
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {
+                    info!("shutting down");
+                    break;
+                }
+                Some(()) = rx.recv() => {
+                    // Debounce: wait briefly for writes to settle
+                    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
+                    info!("config changed, reloading and syncing");
+                    match config::load_config(&config, CliOverrides::default()) {
+                        Ok(mut new_cfg) => {
+                            if let Err(e) = new_cfg.init() {
+                                log::error!("config init failed: {e}");
+                                continue;
+                            }
+                            if let Err(e) = agh_sync_core::sync::sync(&new_cfg).await {
+                                log::error!("sync failed: {e:#}");
+                            }
+                        }
+                        Err(e) => log::error!("config load failed: {e}"),
+                    }
+                }
+            }
+        }
     } else {
         // ── Single run ──
         agh_sync_core::sync::sync(&cfg).await?;
