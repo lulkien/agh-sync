@@ -170,6 +170,10 @@ pub struct DnsConfig {
     /// DNS upstream query mode: load_balance, parallel, fastest_addr.
     #[serde(default)]
     pub upstream_mode: Option<String>,
+
+    /// Fallback DNS servers.
+    #[serde(default)]
+    pub fallback_dns: Option<Vec<String>>,
 }
 
 /// DHCP server status.

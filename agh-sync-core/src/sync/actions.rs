@@ -141,13 +141,7 @@ async fn sync_safe_search(
 }
 
 fn safe_search_eq(a: &SafeSearchConfig, b: &SafeSearchConfig) -> bool {
-    a.enabled == b.enabled
-        && a.bing == b.bing
-        && a.google == b.google
-        && a.youtube == b.youtube
-        && a.pixabay == b.pixabay
-        && a.duckduckgo == b.duckduckgo
-        && a.yandex == b.yandex
+    serde_json::to_value(a).ok() == serde_json::to_value(b).ok()
 }
 
 async fn sync_safe_browsing(
@@ -181,19 +175,7 @@ async fn sync_dns_server_config(
 }
 
 fn dns_config_eq(a: &DnsConfig, b: &DnsConfig) -> bool {
-    a.upstream_dns == b.upstream_dns
-        && a.bootstrap_dns == b.bootstrap_dns
-        && a.ratelimit == b.ratelimit
-        && a.blocking_mode == b.blocking_mode
-        && a.blocking_ipv4 == b.blocking_ipv4
-        && a.blocking_ipv6 == b.blocking_ipv6
-        && a.edns_cs_enabled == b.edns_cs_enabled
-        && a.dnssec_enabled == b.dnssec_enabled
-        && a.disable_ipv6 == b.disable_ipv6
-        && a.cache_size == b.cache_size
-        && a.cache_ttl_min == b.cache_ttl_min
-        && a.cache_ttl_max == b.cache_ttl_max
-        && a.upstream_mode == b.upstream_mode
+    serde_json::to_value(a).ok() == serde_json::to_value(b).ok()
 }
 
 async fn sync_query_log_config(
@@ -216,10 +198,7 @@ async fn sync_query_log_config(
 }
 
 fn query_log_config_eq(a: &QueryLogConfig, b: &QueryLogConfig) -> bool {
-    a.enabled == b.enabled
-        && a.interval == b.interval
-        && a.anonymize_client_ip == b.anonymize_client_ip
-        && a.ignored == b.ignored
+    serde_json::to_value(a).ok() == serde_json::to_value(b).ok()
 }
 
 async fn sync_stats_config(
@@ -411,9 +390,7 @@ async fn sync_dns_access_lists(
 }
 
 fn access_list_eq(a: &AccessList, b: &AccessList) -> bool {
-    a.allowed_clients == b.allowed_clients
-        && a.disallowed_clients == b.disallowed_clients
-        && a.blocked_hosts == b.blocked_hosts
+    serde_json::to_value(a).ok() == serde_json::to_value(b).ok()
 }
 
 async fn sync_dhcp_server_config(
@@ -447,40 +424,7 @@ async fn sync_dhcp_server_config(
 }
 
 fn dhcp_config_eq(a: &DhcpStatus, b: &DhcpStatus) -> bool {
-    a.enabled == b.enabled
-        && a.interface_name == b.interface_name
-        && dhcp_v4_eq(a.v4.as_ref(), b.v4.as_ref())
-        && dhcp_v6_eq(a.v6.as_ref(), b.v6.as_ref())
-}
-
-fn dhcp_v4_eq(
-    a: Option<&crate::model::DhcpConfigV4>,
-    b: Option<&crate::model::DhcpConfigV4>,
-) -> bool {
-    match (a, b) {
-        (None, None) => true,
-        (Some(a), Some(b)) => {
-            a.gateway_ip == b.gateway_ip
-                && a.subnet_mask == b.subnet_mask
-                && a.range_start == b.range_start
-                && a.range_end == b.range_end
-                && a.lease_duration == b.lease_duration
-        }
-        _ => false,
-    }
-}
-
-fn dhcp_v6_eq(
-    a: Option<&crate::model::DhcpConfigV6>,
-    b: Option<&crate::model::DhcpConfigV6>,
-) -> bool {
-    match (a, b) {
-        (None, None) => true,
-        (Some(a), Some(b)) => {
-            a.range_start == b.range_start && a.lease_duration == b.lease_duration
-        }
-        _ => false,
-    }
+    serde_json::to_value(a).ok() == serde_json::to_value(b).ok()
 }
 
 async fn sync_dhcp_static_leases(
@@ -522,12 +466,7 @@ async fn sync_tls_config(
 }
 
 fn tls_config_eq(a: &TlsConfig, b: &TlsConfig) -> bool {
-    a.enabled == b.enabled
-        && a.server_name == b.server_name
-        && a.force_https == b.force_https
-        && a.port_https == b.port_https
-        && a.port_dns_over_tls == b.port_dns_over_tls
-        && a.port_dns_over_quic == b.port_dns_over_quic
+    serde_json::to_value(a).ok() == serde_json::to_value(b).ok()
 }
 
 // ── DhcpStatus helpers ──
