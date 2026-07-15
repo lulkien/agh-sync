@@ -179,9 +179,57 @@ pub struct DnsConfig {
     #[serde(default)]
     pub cache_optimistic: Option<bool>,
 
-    /// Catch-all for unknown fields (so JSON comparison catches them).
-    #[serde(flatten)]
-    pub extra: std::collections::HashMap<String, serde_json::Value>,
+    /// Enable DNS caching.
+    #[serde(default)]
+    pub cache_enabled: Option<bool>,
+
+    /// Maximum upstream timeout in seconds.
+    #[serde(default)]
+    pub upstream_timeout: Option<i32>,
+
+    /// Blocked response TTL in seconds.
+    #[serde(default)]
+    pub blocked_response_ttl: Option<i32>,
+
+    /// Resolve clients' IP addresses.
+    #[serde(default)]
+    pub resolve_clients: Option<bool>,
+
+    /// Use private reverse DNS resolvers.
+    #[serde(default)]
+    pub use_private_ptr_resolvers: Option<bool>,
+
+    /// Local PTR upstreams.
+    #[serde(default)]
+    pub local_ptr_upstreams: Vec<String>,
+
+    /// Default local PTR upstreams.
+    #[serde(default)]
+    pub default_local_ptr_upstreams: Vec<String>,
+
+    /// Rate limit subnet length for IPv4.
+    #[serde(default)]
+    pub ratelimit_subnet_len_ipv4: Option<i32>,
+
+    /// Rate limit subnet length for IPv6.
+    #[serde(default)]
+    pub ratelimit_subnet_len_ipv6: Option<i32>,
+
+    /// Rate limit whitelist.
+    #[serde(default)]
+    pub ratelimit_whitelist: Vec<String>,
+
+    /// Use custom EDNS Client Subnet IP.
+    #[serde(default)]
+    pub edns_cs_use_custom: Option<bool>,
+
+    /// Custom EDNS Client Subnet IP.
+    #[serde(default)]
+    pub edns_cs_custom_ip: Option<String>,
+
+    /// Protection disabled until (ISO timestamp or null).
+    #[serde(default)]
+    pub protection_disabled_until: Option<serde_json::Value>,
 }
 
 /// DHCP server status.
