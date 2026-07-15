@@ -269,6 +269,7 @@ async fn main() -> Result<()> {
                     }
                 }
                 Some(()) = rx.recv() => {
+                    info!("config changed, sync in {debounce_secs:?}");
                     timer.as_mut().reset(tokio::time::Instant::now() + debounce_secs);
                 }
             }
