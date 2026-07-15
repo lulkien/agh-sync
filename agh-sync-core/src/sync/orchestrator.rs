@@ -8,27 +8,22 @@ use log::{error, info};
 use crate::client::Client;
 use crate::config::{AdGuardInstance, Config};
 use crate::model::{
-    AccessList, BlockedServicesSchedule, Clients, DhcpStatus, DnsConfig, FilterStatus, ProfileInfo,
-    QueryLogConfig, RewriteEntry, RewriteSettings, SafeSearchConfig, ServerStatus, StatsConfig,
-    TlsConfig,
+    AccessList, BlockedServicesSchedule, Clients, DhcpStatus, DnsConfig, FilterStatus,
+    GeneralSettings, RewriteEntry, RewriteSettings, ServerStatus, TlsConfig,
 };
 
 use super::actions;
 
 /// All data fetched from the origin instance.
 pub(crate) struct OriginData {
+    pub general: GeneralSettings,
+    #[allow(dead_code)]
     pub status: ServerStatus,
-    pub profile_info: Option<ProfileInfo>,
-    pub parental: bool,
-    pub safe_search: SafeSearchConfig,
-    pub safe_browsing: bool,
     pub rewrite_settings: RewriteSettings,
     pub rewrite_entries: Vec<RewriteEntry>,
     pub blocked_services_schedule: BlockedServicesSchedule,
     pub filters: FilterStatus,
     pub clients: Clients,
-    pub query_log_config: QueryLogConfig,
-    pub stats_config: StatsConfig,
     pub access_list: AccessList,
     pub dns_config: DnsConfig,
     pub dhcp_server_config: Option<DhcpStatus>,
@@ -106,6 +101,26 @@ async fn fetch_origin_data(
         .await
         .context("getting safe browsing status")?;
 
+    let query_log_config = client
+        .query_log_config()
+        .await
+        .context("getting query log config")?;
+
+    let stats_config = client
+        .stats_config()
+        .await
+        .context("getting stats config")?;
+
+    let general = GeneralSettings {
+        profile_info,
+        protection_enabled: status.protection_enabled,
+        parental,
+        safebrowsing: safe_browsing,
+        safe_search,
+        query_log: query_log_config,
+        stats: stats_config,
+    };
+
     let rewrite_settings = client
         .rewrite_settings()
         .await
@@ -125,16 +140,6 @@ async fn fetch_origin_data(
 
     let clients = client.clients().await.context("getting clients")?;
 
-    let query_log_config = client
-        .query_log_config()
-        .await
-        .context("getting query log config")?;
-
-    let stats_config = client
-        .stats_config()
-        .await
-        .context("getting stats config")?;
-
     let access_list = client.access_list().await.context("getting access list")?;
 
     let dns_config = client.dns_config().await.context("getting DNS config")?;
@@ -152,18 +157,13 @@ async fn fetch_origin_data(
     };
 
     Ok(OriginData {
+        general,
         status,
-        profile_info,
-        parental,
-        safe_search,
-        safe_browsing,
         rewrite_settings,
         rewrite_entries,
         blocked_services_schedule,
         filters,
         clients,
-        query_log_config,
-        stats_config,
         access_list,
         dns_config,
         dhcp_server_config,

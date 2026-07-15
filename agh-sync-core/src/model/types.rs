@@ -108,7 +108,7 @@ pub struct Schedule {
 }
 
 /// Query log config.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct QueryLogConfig {
     pub enabled: Option<bool>,
     pub interval: Option<f64>,
@@ -118,7 +118,7 @@ pub struct QueryLogConfig {
 }
 
 /// Stats config response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct StatsConfig {
     pub enabled: Option<bool>,
     pub interval: Option<i64>,
@@ -267,7 +267,7 @@ pub struct TlsConfig {
 }
 
 /// Safe search config.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SafeSearchConfig {
     pub enabled: Option<bool>,
     pub bing: Option<bool>,
@@ -284,6 +284,18 @@ pub struct ProfileInfo {
     pub name: Option<String>,
     pub language: Option<String>,
     pub theme: Option<String>,
+}
+
+/// Web GUI: Settings → General settings
+#[derive(Debug, Clone, Default)]
+pub struct GeneralSettings {
+    pub profile_info: Option<ProfileInfo>,
+    pub protection_enabled: bool,
+    pub parental: bool,
+    pub safebrowsing: bool,
+    pub safe_search: SafeSearchConfig,
+    pub query_log: QueryLogConfig,
+    pub stats: StatsConfig,
 }
 
 /// Stats response from /control/stats.

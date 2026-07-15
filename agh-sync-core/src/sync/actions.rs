@@ -89,7 +89,7 @@ async fn sync_profile_info(
     o: &OriginData,
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
-    let origin = match &o.profile_info {
+    let origin = match &o.general.profile_info {
         Some(p) => p,
         None => return Ok(()),
     };
@@ -104,11 +104,11 @@ async fn sync_protection(c: &Client, o: &OriginData, _x: &ActionContext<'_>) -> 
     let rs = c.status().await.context("protection status")?;
     log::debug!(
         "protection: origin={} replica={}",
-        o.status.protection_enabled,
+        o.general.protection_enabled,
         rs.protection_enabled
     );
-    if o.status.protection_enabled != rs.protection_enabled {
-        c.toggle_protection(o.status.protection_enabled)
+    if o.general.protection_enabled != rs.protection_enabled {
+        c.toggle_protection(o.general.protection_enabled)
             .await
             .context("toggle protection")?;
     }
@@ -117,9 +117,9 @@ async fn sync_protection(c: &Client, o: &OriginData, _x: &ActionContext<'_>) -> 
 
 async fn sync_parental(c: &Client, o: &OriginData, _x: &ActionContext<'_>) -> anyhow::Result<()> {
     let rp = c.parental().await.context("parental")?;
-    log::debug!("parental: origin={} replica={}", o.parental, rp);
-    if o.parental != rp {
-        c.toggle_parental(o.parental)
+    log::debug!("parental: origin={} replica={}", o.general.parental, rp);
+    if o.general.parental != rp {
+        c.toggle_parental(o.general.parental)
             .await
             .context("toggle parental")?;
     }
@@ -132,8 +132,8 @@ async fn sync_safe_search(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rss = c.safe_search_config().await.context("safe search")?;
-    if !safe_search_eq(&o.safe_search, &rss) {
-        c.set_safe_search_config(&o.safe_search)
+    if !safe_search_eq(&o.general.safe_search, &rss) {
+        c.set_safe_search_config(&o.general.safe_search)
             .await
             .context("set safe search")?;
     }
@@ -150,9 +150,13 @@ async fn sync_safe_browsing(
     _x: &ActionContext<'_>,
 ) -> anyhow::Result<()> {
     let rsb = c.safe_browsing().await.context("safe browsing")?;
-    log::debug!("safe_browsing: origin={} replica={}", o.safe_browsing, rsb);
-    if o.safe_browsing != rsb {
-        c.toggle_safe_browsing(o.safe_browsing)
+    log::debug!(
+        "safe_browsing: origin={} replica={}",
+        o.general.safebrowsing,
+        rsb
+    );
+    if o.general.safebrowsing != rsb {
+        c.toggle_safe_browsing(o.general.safebrowsing)
             .await
             .context("toggle safe browsing")?;
     }
@@ -186,11 +190,11 @@ async fn sync_query_log_config(
     let rql = c.query_log_config().await.context("query log config")?;
     log::debug!(
         "query_log_config: origin={:?} replica={:?}",
-        o.query_log_config,
+        o.general.query_log,
         rql
     );
-    if !query_log_config_eq(&o.query_log_config, &rql) {
-        c.set_query_log_config(&o.query_log_config)
+    if !query_log_config_eq(&o.general.query_log, &rql) {
+        c.set_query_log_config(&o.general.query_log)
             .await
             .context("set query log config")?;
     }
@@ -209,11 +213,11 @@ async fn sync_stats_config(
     let rs = c.stats_config().await.context("stats config")?;
     log::debug!(
         "stats_config: origin={:?} replica={:?}",
-        o.stats_config.interval,
+        o.general.stats.interval,
         rs.interval
     );
-    if o.stats_config.interval != rs.interval {
-        c.set_stats_config(&o.stats_config)
+    if o.general.stats.interval != rs.interval {
+        c.set_stats_config(&o.general.stats)
             .await
             .context("set stats config")?;
     }
