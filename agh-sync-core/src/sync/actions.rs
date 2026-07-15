@@ -193,6 +193,7 @@ fn dns_config_eq(a: &DnsConfig, b: &DnsConfig) -> bool {
         && a.cache_size == b.cache_size
         && a.cache_ttl_min == b.cache_ttl_min
         && a.cache_ttl_max == b.cache_ttl_max
+        && a.upstream_mode == b.upstream_mode
 }
 
 async fn sync_query_log_config(

@@ -166,6 +166,10 @@ pub struct DnsConfig {
     pub cache_ttl_min: Option<i32>,
     #[serde(default)]
     pub cache_ttl_max: Option<i32>,
+
+    /// DNS upstream query mode: load_balance, parallel, fastest_addr.
+    #[serde(default)]
+    pub upstream_mode: Option<String>,
 }
 
 /// DHCP server status.
