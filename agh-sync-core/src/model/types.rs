@@ -174,6 +174,14 @@ pub struct DnsConfig {
     /// Fallback DNS servers.
     #[serde(default)]
     pub fallback_dns: Option<Vec<String>>,
+
+    /// Enable optimistic DNS caching.
+    #[serde(default)]
+    pub cache_optimistic: Option<bool>,
+
+    /// Catch-all for unknown fields (so JSON comparison catches them).
+    #[serde(flatten)]
+    pub extra: std::collections::HashMap<String, serde_json::Value>,
 }
 
 /// DHCP server status.
