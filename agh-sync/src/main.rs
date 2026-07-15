@@ -242,17 +242,17 @@ async fn main() -> Result<()> {
 
         info!("daemon running, watching {watch_path}. Press Ctrl+C to stop");
 
+        let debounce_secs = std::time::Duration::from_secs(30);
+        let mut timer = std::pin::pin!(tokio::time::sleep(std::time::Duration::MAX));
+
         loop {
             tokio::select! {
                 _ = tokio::signal::ctrl_c() => {
                     info!("shutting down");
                     break;
                 }
-                Some(()) = rx.recv() => {
-                    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-                    info!("AdGuardHome config changed, syncing");
-
-                    // Reload agh-sync config (may have changed too)
+                () = &mut timer => {
+                    info!("quiet period elapsed, syncing");
                     let mut sync_cfg = match config::load_config(&config, CliOverrides::default()) {
                         Ok(c) => c,
                         Err(e) => {
@@ -264,10 +264,12 @@ async fn main() -> Result<()> {
                         log::error!("config init failed: {e}");
                         continue;
                     }
-
                     if let Err(e) = agh_sync_core::sync::sync(&sync_cfg).await {
                         log::error!("sync failed: {e:#}");
                     }
+                }
+                Some(()) = rx.recv() => {
+                    timer.as_mut().reset(tokio::time::Instant::now() + debounce_secs);
                 }
             }
         }
