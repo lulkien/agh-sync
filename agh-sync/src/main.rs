@@ -267,6 +267,8 @@ async fn main() -> Result<()> {
                     if let Err(e) = agh_sync_core::sync::sync(&sync_cfg).await {
                         log::error!("sync failed: {e:#}");
                     }
+                    // Re-arm to dead — only wakes on next reset from rx.recv()
+                    timer.as_mut().reset(tokio::time::Instant::now() + std::time::Duration::MAX);
                 }
                 Some(()) = rx.recv() => {
                     info!("config changed, sync in {debounce_secs:?}");
