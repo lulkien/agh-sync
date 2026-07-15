@@ -21,6 +21,10 @@ pub struct Config {
     #[serde(default)]
     pub continue_on_error: bool,
 
+    /// Debounce seconds for watch mode (default 15).
+    #[serde(default = "default_debounce")]
+    pub debounce_seconds: u64,
+
     /// HTTP client timeout string (e.g. "30s").
     #[serde(default)]
     pub client_timeout: Option<String>,
@@ -257,6 +261,10 @@ const fn default_scrape_interval() -> u64 {
     30
 }
 
+const fn default_debounce() -> u64 {
+    15
+}
+
 const fn default_query_log_limit() -> u32 {
     10_000
 }
@@ -340,6 +348,7 @@ impl Default for Config {
             run_on_start: true,
             print_config_only: false,
             continue_on_error: false,
+            debounce_seconds: default_debounce(),
             client_timeout: None,
             origin: AdGuardInstance::default(),
             replica: None,

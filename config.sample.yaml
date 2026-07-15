@@ -34,3 +34,4 @@ features:
   tls_config: false
 
 run_on_start: true
+debounce_seconds: 15

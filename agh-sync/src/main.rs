@@ -242,7 +242,7 @@ async fn main() -> Result<()> {
 
         info!("daemon running, watching {watch_path}. Press Ctrl+C to stop");
 
-        let debounce_secs = std::time::Duration::from_secs(30);
+        let debounce_secs = std::time::Duration::from_secs(cfg.debounce_seconds);
         let mut timer = std::pin::pin!(tokio::time::sleep(std::time::Duration::MAX));
 
         loop {
