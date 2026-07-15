@@ -194,8 +194,8 @@ async fn test_dns_config() {
     let client = Client::new(&inst, None).unwrap();
 
     let dns = client.dns_config().await.unwrap();
-    assert_eq!(dns.upstream_dns, vec!["8.8.8.8", "1.1.1.1"]);
-    assert_eq!(dns.ratelimit, Some(20));
+    assert_eq!(dns.upstream.upstream_dns, vec!["8.8.8.8", "1.1.1.1"]);
+    assert_eq!(dns.server.ratelimit, Some(20));
 }
 
 #[tokio::test]

@@ -135,19 +135,65 @@ pub struct AccessList {
     pub blocked_hosts: Vec<String>,
 }
 
-/// DNS config.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// DNS config (flat JSON, logical groups via serde(flatten)).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DnsConfig {
+    #[serde(flatten)]
+    pub upstream: UpstreamDns,
+
+    #[serde(flatten)]
+    pub server: DnsServer,
+
+    #[serde(flatten)]
+    pub cache: DnsCache,
+
+    /// Protection enabled — synced separately, set to None before pushing DNS config.
+    #[serde(default)]
+    pub protection_enabled: Option<bool>,
+}
+
+/// Web GUI: Settings → DNS settings → Upstream DNS servers
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpstreamDns {
     #[serde(default)]
     pub upstream_dns: Vec<String>,
     #[serde(default)]
-    pub upstream_dns_file: Option<String>,
+    pub upstream_mode: Option<String>,
+    #[serde(default)]
+    pub fallback_dns: Option<Vec<String>>,
     #[serde(default)]
     pub bootstrap_dns: Vec<String>,
     #[serde(default)]
-    pub protection_enabled: Option<bool>,
+    pub local_ptr_upstreams: Vec<String>,
+    #[serde(default)]
+    pub use_private_ptr_resolvers: Option<bool>,
+    #[serde(default)]
+    pub resolve_clients: Option<bool>,
+    #[serde(default)]
+    pub upstream_timeout: Option<i32>,
+}
+
+/// Web GUI: Settings → DNS settings → DNS server configuration
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DnsServer {
     #[serde(default)]
     pub ratelimit: Option<i32>,
+    #[serde(default)]
+    pub ratelimit_subnet_len_ipv4: Option<i32>,
+    #[serde(default)]
+    pub ratelimit_subnet_len_ipv6: Option<i32>,
+    #[serde(default)]
+    pub ratelimit_whitelist: Vec<String>,
+    #[serde(default)]
+    pub edns_cs_enabled: Option<bool>,
+    #[serde(default)]
+    pub edns_cs_use_custom: Option<bool>,
+    #[serde(default)]
+    pub edns_cs_custom_ip: Option<String>,
+    #[serde(default)]
+    pub dnssec_enabled: Option<bool>,
+    #[serde(default)]
+    pub disable_ipv6: Option<bool>,
     #[serde(default)]
     pub blocking_mode: Option<String>,
     #[serde(default)]
@@ -155,81 +201,24 @@ pub struct DnsConfig {
     #[serde(default)]
     pub blocking_ipv6: Option<String>,
     #[serde(default)]
-    pub edns_cs_enabled: Option<bool>,
+    pub blocked_response_ttl: Option<i32>,
     #[serde(default)]
-    pub dnssec_enabled: Option<bool>,
+    pub protection_disabled_until: Option<serde_json::Value>,
+}
+
+/// Web GUI: Settings → DNS settings → DNS cache configuration
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DnsCache {
     #[serde(default)]
-    pub disable_ipv6: Option<bool>,
+    pub cache_enabled: Option<bool>,
     #[serde(default)]
     pub cache_size: Option<i32>,
     #[serde(default)]
     pub cache_ttl_min: Option<i32>,
     #[serde(default)]
     pub cache_ttl_max: Option<i32>,
-
-    /// DNS upstream query mode: load_balance, parallel, fastest_addr.
-    #[serde(default)]
-    pub upstream_mode: Option<String>,
-
-    /// Fallback DNS servers.
-    #[serde(default)]
-    pub fallback_dns: Option<Vec<String>>,
-
-    /// Enable optimistic DNS caching.
     #[serde(default)]
     pub cache_optimistic: Option<bool>,
-
-    /// Enable DNS caching.
-    #[serde(default)]
-    pub cache_enabled: Option<bool>,
-
-    /// Maximum upstream timeout in seconds.
-    #[serde(default)]
-    pub upstream_timeout: Option<i32>,
-
-    /// Blocked response TTL in seconds.
-    #[serde(default)]
-    pub blocked_response_ttl: Option<i32>,
-
-    /// Resolve clients' IP addresses.
-    #[serde(default)]
-    pub resolve_clients: Option<bool>,
-
-    /// Use private reverse DNS resolvers.
-    #[serde(default)]
-    pub use_private_ptr_resolvers: Option<bool>,
-
-    /// Local PTR upstreams.
-    #[serde(default)]
-    pub local_ptr_upstreams: Vec<String>,
-
-    /// Default local PTR upstreams.
-    #[serde(default)]
-    pub default_local_ptr_upstreams: Vec<String>,
-
-    /// Rate limit subnet length for IPv4.
-    #[serde(default)]
-    pub ratelimit_subnet_len_ipv4: Option<i32>,
-
-    /// Rate limit subnet length for IPv6.
-    #[serde(default)]
-    pub ratelimit_subnet_len_ipv6: Option<i32>,
-
-    /// Rate limit whitelist.
-    #[serde(default)]
-    pub ratelimit_whitelist: Vec<String>,
-
-    /// Use custom EDNS Client Subnet IP.
-    #[serde(default)]
-    pub edns_cs_use_custom: Option<bool>,
-
-    /// Custom EDNS Client Subnet IP.
-    #[serde(default)]
-    pub edns_cs_custom_ip: Option<String>,
-
-    /// Protection disabled until (ISO timestamp or null).
-    #[serde(default)]
-    pub protection_disabled_until: Option<serde_json::Value>,
 }
 
 /// DHCP server status.
