@@ -242,38 +242,48 @@ async fn main() -> Result<()> {
 
         info!("daemon running, watching {watch_path}. Press Ctrl+C to stop");
 
-        let debounce_secs = std::time::Duration::from_secs(cfg.debounce_seconds);
-        let mut timer = std::pin::pin!(tokio::time::sleep(std::time::Duration::MAX));
+        let debounce = std::time::Duration::from_secs(cfg.debounce_seconds);
+        let mut timer: Option<std::pin::Pin<Box<tokio::time::Sleep>>> = None;
+        let mut last_event = tokio::time::Instant::now();
 
         loop {
-            tokio::select! {
-                _ = tokio::signal::ctrl_c() => {
-                    info!("shutting down");
-                    break;
-                }
-                () = &mut timer => {
-                    info!("quiet period elapsed, syncing");
-                    let mut sync_cfg = match config::load_config(&config, CliOverrides::default()) {
-                        Ok(c) => c,
-                        Err(e) => {
-                            log::error!("config reload failed: {e}");
-                            timer.as_mut().reset(tokio::time::Instant::now() + std::time::Duration::MAX);
-                            continue;
+            // Build select: signal + optional timer + events
+            let signal = tokio::signal::ctrl_c();
+            tokio::pin!(signal);
+
+            if let Some(ref mut t) = timer {
+                tokio::select! {
+                    _ = &mut signal => { info!("shutting down"); break; }
+                    () = t.as_mut() => {
+                        timer = None;
+                        info!("quiet period elapsed, syncing");
+                        let mut sync_cfg = match config::load_config(&config, CliOverrides::default()) {
+                            Ok(c) => c,
+                            Err(e) => { log::error!("config reload failed: {e}"); continue; }
+                        };
+                        if let Err(e) = sync_cfg.init() { log::error!("config init failed: {e}"); continue; }
+                        if let Err(e) = agh_sync_core::sync::sync(&sync_cfg).await {
+                            log::error!("sync failed: {e:#}");
                         }
-                    };
-                    if let Err(e) = sync_cfg.init() {
-                        log::error!("config init failed: {e}");
-                        timer.as_mut().reset(tokio::time::Instant::now() + std::time::Duration::MAX);
-                        continue;
                     }
-                    if let Err(e) = agh_sync_core::sync::sync(&sync_cfg).await {
-                        log::error!("sync failed: {e:#}");
+                    Some(()) = rx.recv() => {
+                        t.as_mut().reset(tokio::time::Instant::now() + debounce);
+                        info!("config changed, sync in {}s", debounce.as_secs());
                     }
-                    timer.as_mut().reset(tokio::time::Instant::now() + std::time::Duration::MAX);
                 }
-                Some(()) = rx.recv() => {
-                    info!("config changed, sync in {debounce_secs:?}");
-                    timer.as_mut().reset(tokio::time::Instant::now() + debounce_secs);
+            } else {
+                tokio::select! {
+                    _ = &mut signal => { info!("shutting down"); break; }
+                    Some(()) = rx.recv() => {
+                        // Debounce inotify events within 500ms
+                        let now = tokio::time::Instant::now();
+                        if now - last_event < std::time::Duration::from_millis(500) {
+                            continue; // duplicate event from same save
+                        }
+                        last_event = now;
+                        timer = Some(Box::pin(tokio::time::sleep(debounce)));
+                        info!("config changed, sync in {}s", debounce.as_secs());
+                    }
                 }
             }
         }
