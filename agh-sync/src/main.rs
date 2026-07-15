@@ -257,17 +257,18 @@ async fn main() -> Result<()> {
                         Ok(c) => c,
                         Err(e) => {
                             log::error!("config reload failed: {e}");
+                            timer.as_mut().reset(tokio::time::Instant::now() + std::time::Duration::MAX);
                             continue;
                         }
                     };
                     if let Err(e) = sync_cfg.init() {
                         log::error!("config init failed: {e}");
+                        timer.as_mut().reset(tokio::time::Instant::now() + std::time::Duration::MAX);
                         continue;
                     }
                     if let Err(e) = agh_sync_core::sync::sync(&sync_cfg).await {
                         log::error!("sync failed: {e:#}");
                     }
-                    // Re-arm to dead — only wakes on next reset from rx.recv()
                     timer.as_mut().reset(tokio::time::Instant::now() + std::time::Duration::MAX);
                 }
                 Some(()) = rx.recv() => {
