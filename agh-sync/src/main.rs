@@ -245,9 +245,9 @@ async fn main() -> Result<()> {
         let debounce = std::time::Duration::from_secs(cfg.debounce_seconds);
         let mut timer: Option<std::pin::Pin<Box<tokio::time::Sleep>>> = None;
         let mut last_event = tokio::time::Instant::now();
+        let dedup_window = std::time::Duration::from_millis(500);
 
         loop {
-            // Build select: signal + optional timer + events
             let signal = tokio::signal::ctrl_c();
             tokio::pin!(signal);
 
@@ -267,22 +267,24 @@ async fn main() -> Result<()> {
                         }
                     }
                     Some(()) = rx.recv() => {
-                        t.as_mut().reset(tokio::time::Instant::now() + debounce);
-                        info!("config changed, sync in {}s", debounce.as_secs());
+                        let now = tokio::time::Instant::now();
+                        if now - last_event >= dedup_window {
+                            t.as_mut().reset(now + debounce);
+                            info!("config changed, sync in {}s", debounce.as_secs());
+                        }
+                        last_event = now;
                     }
                 }
             } else {
                 tokio::select! {
                     _ = &mut signal => { info!("shutting down"); break; }
                     Some(()) = rx.recv() => {
-                        // Debounce inotify events within 500ms
                         let now = tokio::time::Instant::now();
-                        if now - last_event < std::time::Duration::from_millis(500) {
-                            continue; // duplicate event from same save
+                        if now - last_event >= dedup_window {
+                            timer = Some(Box::pin(tokio::time::sleep_until(now + debounce)));
+                            info!("config changed, sync in {}s", debounce.as_secs());
                         }
                         last_event = now;
-                        timer = Some(Box::pin(tokio::time::sleep(debounce)));
-                        info!("config changed, sync in {}s", debounce.as_secs());
                     }
                 }
             }
